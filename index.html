@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="connect-src 'none'; form-action 'none'">
+<title>Check Your Bot</title>
+<meta name="description" content="Score a trading bot's trade log against six statistical gates. Runs entirely in your browser; nothing is uploaded.">
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --ink: #16181d; --ink2: #4a4f5a; --mute: #7a808c; --line: #e2e3e0;
+  --acc: #2457d6; --pos: #16803c; --neg: #c2362b; --warn: #a86a00;
+  --pos-bg: #e8f5ec; --neg-bg: #fbeceb; --warn-bg: #fdf3e1;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --panel: #1a1d23; --ink: #eceef2; --ink2: #b7bcc6; --mute: #8a909c; --line: #2c3039;
+    --acc: #7aa2ff; --pos: #4cc97a; --neg: #ff7a6e; --warn: #f0b44c;
+    --pos-bg: #15291d; --neg-bg: #33191a; --warn-bg: #2f2511;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --panel: #1a1d23; --ink: #eceef2; --ink2: #b7bcc6; --mute: #8a909c; --line: #2c3039;
+  --acc: #7aa2ff; --pos: #4cc97a; --neg: #ff7a6e; --warn: #f0b44c;
+  --pos-bg: #15291d; --neg-bg: #33191a; --warn-bg: #2f2511;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 32px 16px 48px; }
+header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+h1 { font-size: clamp(26px, 5vw, 36px); line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.01em; }
+h3 { margin: 0 0 12px; font-size: 18px; }
+.sub { color: var(--ink2); margin: 0 0 24px; max-width: 70ch; }
+.theme { background: var(--panel); color: var(--ink2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; cursor: pointer; flex: none; }
+.tool { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
+@media (max-width: 820px) { .tool { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+.drop { border: 2px dashed var(--line); border-radius: 10px; padding: 26px 14px; text-align: center; color: var(--ink2); cursor: pointer; transition: border-color .15s, background .15s; }
+.drop:hover, .drop.hover, .drop:focus-visible { border-color: var(--acc); outline: none; }
+.drop u { color: var(--acc); }
+.field { margin-top: 14px; }
+label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+textarea, input[type=number] { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+input[type=number] { width: 120px; font-family: inherit; font-size: 15px; }
+textarea:focus, input:focus { outline: 2px solid var(--acc); outline-offset: 1px; }
+.hint { color: var(--mute); font-size: 13px; margin-top: 6px; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92em; }
+.btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+.btn.pri { background: var(--acc); border-color: var(--acc); color: #fff; }
+:root[data-theme="dark"] .btn.pri { color: #0b1020; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.pri { color: #0b1020; } }
+.btn:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 420px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stat { background: var(--bg); border-radius: 8px; padding: 10px; }
+.stat .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 12px; color: var(--mute); }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+svg.eq { width: 100%; height: 150px; display: block; margin-top: 12px; background: var(--bg); border-radius: 8px; }
+.gates { margin-top: 14px; display: grid; gap: 8px; }
+.gate { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line); }
+.badge { font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+.badge.ok { color: var(--pos); } .badge.fail { color: var(--neg); } .badge.na { color: var(--mute); }
+.gate .t { font-weight: 600; font-size: 14px; }
+.gate .w { color: var(--ink2); font-size: 13px; overflow-wrap: anywhere; }
+.verdict { margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-weight: 600; }
+.verdict.ready { background: var(--pos-bg); color: var(--pos); }
+.verdict.watch { background: var(--warn-bg); color: var(--warn); }
+.verdict.no { background: var(--neg-bg); color: var(--neg); }
+.flags { margin: 12px 0 0; padding-left: 20px; color: var(--ink2); font-size: 14px; }
+.note { color: var(--mute); font-size: 13px; margin: 14px 0 0; }
+.err { color: var(--neg); margin: 0; }
+details { margin-top: 28px; }
+details summary { cursor: pointer; font-weight: 600; }
+.explain { display: grid; gap: 10px; margin-top: 12px; }
+.explain div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--ink2); }
+.explain b { color: var(--ink); }
+footer { margin-top: 32px; color: var(--mute); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+footer a { color: var(--acc); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Check your bot</h1>
+      <p class="sub">Drop in your trade CSV and the tool scores it against the same six gates BOTLAB's own bots must pass. Everything runs in your browser; nothing is uploaded.</p>
+    </div>
+    <button class="theme" id="theme" type="button" aria-label="Toggle light or dark theme">Theme</button>
+  </header>
+
+  <div class="tool">
+    <div class="panel">
+      <div class="drop" id="drop" role="button" tabindex="0" aria-label="Choose a CSV file">Drop a .csv file here, or <u>browse</u><input type="file" id="file" accept=".csv,.txt" hidden></div>
+      <div class="field">
+        <label for="csv">Or paste CSV content</label>
+        <textarea id="csv" rows="8" spellcheck="false" placeholder="symbol,date,side,r&#10;BTCUSDT,2026-09-01,long,1.2&#10;ETHUSDT,2026-09-02,short,-1"></textarea>
+        <div class="hint">Requires a result column: <span class="mono">r</span> or <span class="mono">pnl_r</span> (R multiple), or <span class="mono">pnl</span> / <span class="mono">pnl_usd</span>. Add <span class="mono">symbol</span> and <span class="mono">date</span> to score G4, and <span class="mono">side</span> (long/short) to score G5. Rows must be in time order.</div>
+      </div>
+      <div class="field">
+        <label for="trials">How many variants did you test before choosing this one?</label>
+        <input type="number" id="trials" value="20" min="1">
+        <div class="hint">The more variants you test, the more likely one looks good by chance. The Deflated Sharpe Ratio adjusts for this.</div>
+      </div>
+      <div class="btns">
+        <button class="btn pri" id="run" type="button">Run check</button>
+        <button class="btn" id="sample" type="button">Use synthetic sample</button>
+      </div>
+    </div>
+    <div class="panel" id="out" aria-live="polite"><p class="note" style="margin:0">Results will appear here.</p></div>
+  </div>
+
+  <details>
+    <summary>What the six gates check</summary>
+    <div class="explain">
+      <div><b>G1 Sufficient sample.</b> Trades &ge; the larger of 300 and MinTRL, the number of trades needed to be 95% sure the edge is real. Thinner or noisier edges need more trades.</div>
+      <div><b>G2 Not just luck.</b> Probabilistic Sharpe PSR(0) &ge; 0.95 and Deflated Sharpe (after the number of variants you tried) &ge; 0.5.</div>
+      <div><b>G3 Still working recently.</b> Average of the last 100 trades &gt; 0 and of the last 30 trades &gt; &minus;0.1 per trade.</div>
+      <div><b>G4 Not reliant on a few coins or days.</b> Top 3 coins &lt; 50% of gross profit and best 2 days &lt; 50% of net profit.</div>
+      <div><b>G5 No losing side.</b> Fails if the long side or the short side alone has 50+ trades with a negative average.</div>
+      <div><b>G6 Acceptable drawdown.</b> Maximum peak-to-trough drawdown below 15R (scored only for R-multiple input).</div>
+    </div>
+  </details>
+
+  <footer>
+    <p>This tool cannot detect look-ahead bias in code, or model real fees, slippage and funding. It only scores the trades you give it.</p>
+    <p><b>Educational tool. Not financial advice. Past results don't predict future results.</b></p>
+    <p>Made by BOTLAB, an independent crypto bot lab that publishes every result: <a href="https://botlab.org.uk" rel="noopener">botlab.org.uk</a>. Open source under the MIT License.</p>
+  </footer>
+</div>
+
+<script src="gates.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var fR = function (x, d) { return (x > 0 ? '+' : '') + Number(x).toFixed(d); };
+  var cls = function (x) { return x > 0 ? 'pos' : x < 0 ? 'neg' : ''; };
+
+  /* theme toggle (remembered per browser when storage is available) */
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('cyb-theme'); if (saved) root.dataset.theme = saved; } catch (e) {}
+  $('#theme').onclick = function () {
+    var dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('cyb-theme', root.dataset.theme); } catch (e) {}
+  };
+
+  function drawCurve(c) {
+    var w = 600, h = 150, mn = Math.min.apply(null, [0].concat(c)), mx = Math.max.apply(null, [0].concat(c)), sp = (mx - mn) || 1;
+    var pts = c.map(function (v, i) { return (i / Math.max(1, c.length - 1) * w).toFixed(1) + ',' + (h - 8 - (v - mn) / sp * (h - 16)).toFixed(1); }).join(' ');
+    var y0 = h - 8 - (0 - mn) / sp * (h - 16), last = c[c.length - 1];
+    return '<svg class="eq" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" role="img" aria-label="Cumulative equity curve">' +
+      '<line x1="0" x2="' + w + '" y1="' + y0 + '" y2="' + y0 + '" stroke="var(--line)" stroke-dasharray="4 4"/>' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + (last >= 0 ? 'var(--pos)' : 'var(--neg)') + '" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>';
+  }
+
+  function run() {
+    var out = $('#out');
+    try {
+      var r = BotlabGates.check($('#csv').value, +$('#trials').value || 1), u = r.unit;
+      var stat = function (v, l, c) { return '<div class="stat"><div class="v ' + (c || '') + '">' + v + '</div><div class="l">' + l + '</div></div>'; };
+      var gates = Object.keys(r.G).map(function (g) {
+        var ok = r.G[g][0], why = r.G[g][1];
+        var b = ok === null ? '<span class="badge na">&ndash; ' + g + '</span>' : ok ? '<span class="badge ok">&#10003; ' + g + '</span>' : '<span class="badge fail">&#10007; ' + g + '</span>';
+        return '<div class="gate">' + b + '<div><div class="t">' + esc(BotlabGates.GATE_TITLES[g]) + '</div><div class="w">' + esc(why) + '</div></div></div>';
+      }).join('');
+      out.innerHTML = '<h3>Results</h3><div class="stats">' +
+        stat(r.n, 'trades') +
+        stat(fR(r.mean, 3) + (u === 'R' ? 'R' : ''), 'avg per trade (' + u + ')', cls(r.mean)) +
+        stat(r.wr.toFixed(0) + '%', 'win rate') +
+        stat(r.psr0.toFixed(2), 'PSR(0)') +
+        stat(r.dsr.toFixed(2), 'DSR (' + r.trials + ' trials)') +
+        stat(r.dd.toFixed(1), 'max drawdown (' + u + ')') +
+        '</div>' + drawCurve(r.curve) +
+        '<div class="gates">' + gates + '</div>' +
+        '<div class="verdict ' + r.verdict + '">' + esc(r.verdictText) + '</div>' +
+        (r.flags.length ? '<ul class="flags">' + r.flags.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' : '') +
+        '<p class="note">Gates marked &ndash; could not be scored with the columns provided and are left out of the verdict.</p>';
+    } catch (e) {
+      out.innerHTML = '<p class="err">' + esc(e.message || e) + '</p>';
+    }
+  }
+
+  /* Synthetic sample (random numbers, not real trades). Same generator as the online tool. */
+  function sample() {
+    var s = 'symbol,date,r\n', syms = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'LINKUSDT'];
+    var seed = 7, rnd = function () { return (seed = (seed * 16807) % 2147483647) / 2147483647; };
+    for (var i = 0; i < 120; i++) {
+      var d = new Date(Date.UTC(2026, 5, 1) + i * 864e5 * 0.9).toISOString().slice(0, 10);
+      var v = rnd() < 0.42 ? +(1 + rnd() * 1.6).toFixed(2) : -(0.6 + rnd() * 0.45).toFixed(2);
+      s += syms[i % syms.length] + ',' + d + ',' + v + '\n';
+    }
+    $('#csv').value = s; run();
+  }
+
+  $('#run').onclick = run;
+  $('#sample').onclick = sample;
+  var drop = $('#drop'), fileIn = $('#file');
+  var load = function (f) { if (f) f.text().then(function (t) { $('#csv').value = t; run(); }); };
+  drop.onclick = function () { fileIn.click(); };
+  drop.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileIn.click(); } };
+  fileIn.onchange = function () { load(fileIn.files[0]); };
+  ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('hover'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('hover'); }); });
+  drop.addEventListener('drop', function (e) { load(e.dataTransfer.files[0]); });
+})();
+</script>
+</body>
+</html>

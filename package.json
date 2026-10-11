@@ -1,0 +1,13 @@
+{
+  "name": "botlab-check-your-bot",
+  "version": "1.0.0",
+  "description": "Score a trading bot's trade log against six statistical gates (sample size/MinTRL, PSR/DSR, recency, concentration, side, drawdown). Runs locally.",
+  "main": "gates.js",
+  "bin": { "check-your-bot": "cli.mjs" },
+  "scripts": { "test": "node --test" },
+  "engines": { "node": ">=18" },
+  "license": "MIT",
+  "author": "BOTLAB",
+  "homepage": "https://botlab.org.uk",
+  "keywords": ["trading", "backtest", "crypto", "sharpe", "deflated-sharpe", "minimum-track-record-length"]
+}
