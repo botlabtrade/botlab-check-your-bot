@@ -118,7 +118,7 @@ footer a { color: var(--acc); }
   <details>
     <summary>What the six gates check</summary>
     <div class="explain">
-      <div><b>G1 Sufficient sample.</b> Trades &ge; the larger of 100 and MinTRL, the number of trades needed to be 95% sure the edge is real. Thinner or noisier edges need more trades.</div>
+      <div><b>G1 Sufficient sample.</b> Trades &ge; the larger of 50 and MinTRL, the number of trades needed to be 95% sure the edge is real. Thinner or noisier edges need more trades.</div>
       <div><b>G2 Not just luck.</b> Probabilistic Sharpe PSR(0) &ge; 0.95 and Deflated Sharpe (after the number of variants you tried) &ge; 0.5.</div>
       <div><b>G3 Still working recently.</b> Average of the last 100 trades &gt; 0 and of the last 30 trades &gt; &minus;0.1 per trade.</div>
       <div><b>G4 Not reliant on a few coins or days.</b> Top 3 coins &lt; 50% of gross profit and best 2 days &lt; 50% of net profit.</div>

@@ -44,13 +44,13 @@ test('parseCSV: separators, units, columns', () => {
   assert.throws(() => G.parseCSV('r\nfoo'), /numeric rows/);
 });
 
-test('G1: needs max(100, MinTRL)', () => {
+test('G1: needs max(50, MinTRL)', () => {
   const rnd = prng(3);
   const rows = Array.from({ length: 400 }, (_, i) => `S${i % 9},2026-01-${String(1 + (i % 28)).padStart(2, '0')},${rnd() < 0.5 ? 1.2 : -1}`);
   const r = G.check(csv(rows), 1);
   const m = G.moments(r.curve.map((v, i) => v - (r.curve[i - 1] || 0)));
   assert.equal(r.minTRL, G.minTRL(m, 0.95));
-  assert.equal(r.need, Math.max(100, r.minTRL));
+  assert.equal(r.need, Math.max(50, r.minTRL));
   assert.equal(r.G.G1[0], r.n >= r.need);
   // losing series => MinTRL is infinite => G1 fails no matter how many trades
   const lose = G.check(csv(Array.from({ length: 500 }, (_, i) => `A,2026-01-01,${i % 2 ? -1 : 0.9}`)), 1);
@@ -131,7 +131,7 @@ function siteGrade(rows, trials) {
   const groupShare = (key, k, base) => { const m = {}; rows.forEach(r => m[r[key]] = (m[r[key]] || 0) + r.v);
     const top = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, k); return top.reduce((a, b) => a + Math.max(0, b[1]), 0) / base; };
   const symShare = groupShare('sym', 3, posSum), dayShare = groupShare('day', 2, Math.abs(tot) || 1e-9);
-  const need = Math.max(100, minTRL);
+  const need = Math.max(50, minTRL);
   return { psr0, dsr, dd, G1: n >= need, G2: psr0 >= 0.95 && dsr >= 0.5, G3: avgLast(100) > 0 && avgLast(30) > -0.1,
     G4: symShare < 0.5 && dayShare < 0.5, G6: dd < 15 };
 }
