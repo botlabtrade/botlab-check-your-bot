@@ -12,7 +12,7 @@
 
   /** Thresholds. Same defaults as the online tool. */
   const DEFAULTS = Object.freeze({
-    G1_MIN_N: 300,          // G1: minimum trade count (floor under MinTRL)
+    G1_MIN_N: 100,          // G1: minimum trade count (floor under MinTRL)
     G1_CONF: 0.95,          // G1: MinTRL confidence level
     G2_PSR_MIN: 0.95,       // G2: Probabilistic Sharpe vs 0
     G2_DSR_MIN: 0.5,        // G2: Deflated Sharpe after N trials
